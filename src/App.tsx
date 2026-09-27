@@ -95,6 +95,7 @@ const findings: Finding[] = [
   { id: 'ARCH-002', title: 'PostGIS no mencionado en producción', severity: 'MEDIUM', category: 'Database', description: 'La UI muestra Neon PostgreSQL pero NO menciona PostGIS. El brief afirma PostGIS activo. Si la BD es Neon, PostGIS puede no estar disponible.', status: 'PARTIAL', evidence: 'C11-P1 muestra "Neon PostgreSQL" sin mención de PostGIS', recommendation: 'Verificar si Neon tiene PostGIS habilitado. Si no, evaluar migración a Supabase o habilitar PostGIS en Neon.' },
   { id: 'EVID-001', title: 'Evidence Engine presente pero cadena no verificada', severity: 'HIGH', category: 'Evidence', description: 'M02 Evidence Engine está marcado OPERATIONAL en frontend. La cadena SOURCE→ACQUISITION→PROCESSING→DERIVED→REVIEW→VALIDATION→DECISION no puede verificarse sin acceso al código.', status: 'PARTIAL', evidence: 'HTML: "evidence runtime and API are present; human review remains required"', recommendation: 'Inspeccionar código de M02 para verificar implementación de la cadena completa y separación AI OUTPUT ≠ VERIFIED EVIDENCE.' },
   { id: 'DEPLOY-001', title: 'Múltiples deployments de Vercel activos', severity: 'MEDIUM', category: 'Deployment', description: 'Existen al menos 2 deployments activos: firecycle-platform.vercel.app (proyecto principal con 34 módulos) y firecycle-cc-4444.vercel.app (dashboard de auditoría). Ambos devuelven 404 en /api/health.', status: 'VERIFIED', evidence: 'GET https://firecycle-cc-4444.vercel.app/ → HTTP 200; GET /api/health → 404', recommendation: 'Documentar la relación entre deployments. Determinar cuál es canónico. Considerar consolidar o documentar propósito de cada uno.' },
+  { id: 'SPEC-001', title: 'Especificación /api/health recibida y documentada', severity: 'INFORMATIONAL', category: 'Specification', description: 'Spec técnica completa para GET /api/health recibida. Define contrato JSON, probes de BD, variables de entorno, tests, CI smoke test, y rollback. Pendiente de implementación tras verificación de datos (§10).', status: 'VERIFIED', evidence: 'Documento de especificación técnica entregado el 27/09/2026', recommendation: 'Implementar en rama feat/health-canonical-metadata tras verificar: (1) nombre objeto core M02, (2) proveedor BD real, (3) mecanismo versionado esquema existente.' },
 ]
 
 // ============================================================
@@ -113,6 +114,7 @@ interface ControlItem {
 const controlMatrix: ControlItem[] = [
   { control: 'Producción activa (platform)', before: 'DESCONOCIDO', action: 'GET /', after: 'HTTP 200 VERIFIED', evidence: 'firecycle-platform.vercel.app responde 200', status: 'PASS' },
   { control: 'Producción activa (audit)', before: 'DESCONOCIDO', action: 'GET /', after: 'HTTP 200 VERIFIED', evidence: 'firecycle-cc-4444.vercel.app responde 200', status: 'PASS' },
+  { control: '/api/health spec definida', before: 'NO EXISTÍA', action: 'Recibir documentación', after: 'SPEC COMPLETA §1-§10', evidence: 'Documento de especificación técnica entregado', status: 'PASS' },
   { control: '/api/health endpoint (platform)', before: 'AFIRMADO HTTP 200', action: 'GET /api/health', after: 'HTTP 404 NOT_FOUND', evidence: 'Vercel 404 page', status: 'FAIL' },
   { control: '/api/health endpoint (audit)', before: 'NO IMPLEMENTADO', action: 'GET /api/health', after: 'HTTP 404 NOT_FOUND', evidence: 'Vercel 404 page (esperado: dashboard estático)', status: 'FAIL' },
   { control: 'Identidad FEXT-EOS', before: 'DESCONOCIDO', action: 'Inspección HTML', after: 'VERIFIED: FEXT-EOS EU OPERATIONAL TOOL', evidence: 'Title + badge en HTML', status: 'PASS' },
@@ -218,6 +220,7 @@ function Navigation({ active, setActive }: { active: string; setActive: (s: stri
   const tabs = [
     { id: 'executive', label: 'Executive Status', icon: 'fa-gauge-high' },
     { id: 'verified', label: 'Verified Facts', icon: 'fa-circle-check' },
+    { id: 'health-spec', label: 'Health Spec', icon: 'fa-file-contract' },
     { id: 'modules', label: 'Module Registry', icon: 'fa-cubes' },
     { id: 'findings', label: 'Findings', icon: 'fa-magnifying-glass' },
     { id: 'divergences', label: 'Divergences', icon: 'fa-code-branch' },
@@ -330,6 +333,10 @@ function ExecutiveStatus() {
         </div>
         <div className="mt-3 text-xs text-red-300 font-medium">
           RESULTADO: 0 PASS · 5 FAIL · 1 PARTIAL · 10 HOLD — v1.4.1 NO CERTIFICABLE (16 criterios evaluados)
+        </div>
+        <div className="mt-2 text-xs text-emerald-300">
+          <i className="fa-solid fa-circle-check mr-1"></i>
+          PROGRESO: Spec /api/health definida (Report 002) — pendiente implementación tras verificación de datos (§10)
         </div>
       </div>
     </div>
@@ -692,6 +699,314 @@ function DivergencesPanel() {
   )
 }
 
+function HealthSpec() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <i className="fa-solid fa-file-contract text-purple-400"></i>
+          SPEC — GET /api/health Canonical Metadata Endpoint
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono px-2 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            FEXT-EOS v1.4.1
+          </span>
+          <span className="text-xs font-mono px-2 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            feat/health-canonical-metadata
+          </span>
+        </div>
+      </div>
+
+      {/* Status Alert */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <i className="fa-solid fa-clock text-amber-400"></i>
+          <span className="text-sm font-semibold text-amber-300">ESTADO: PENDIENTE DE IMPLEMENTACIÓN</span>
+        </div>
+        <p className="text-xs text-slate-300">
+          Especificación técnica recibida y documentada. Implementación pendiente de: (1) acceso al repositorio GitLab, (2) verificación del nombre del objeto core de M02 para schemaReady, (3) confirmación del proveedor real de BD (Neon vs Supabase).
+        </p>
+      </div>
+
+      {/* Section 1: Justification */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§1</span>
+          Justificación
+        </h3>
+        <div className="space-y-3 text-xs">
+          <div>
+            <div className="text-slate-400 font-medium mb-1">Problema:</div>
+            <div className="text-slate-300">La cadena commit→runtime es hoy indemostrable.</div>
+          </div>
+          <div>
+            <div className="text-slate-400 font-medium mb-1">Evidencia <span className="text-emerald-400 font-mono">[HECHO]</span>:</div>
+            <div className="text-slate-300">/api/health devuelve 404 en ambos deployments (verificado el 27/09/2026); la UI productiva identifica "Neon PostgreSQL" mientras el brief declara Supabase — divergencia sin posibilidad de verificación remota.</div>
+          </div>
+          <div>
+            <div className="text-slate-400 font-medium mb-1">Riesgo <span className="text-blue-400 font-mono">[PROPUESTA]</span>:</div>
+            <div className="text-slate-300">Medio-bajo. Endpoint nuevo, de solo lectura, sin auth, sin PII. No toca esquema ni datos.</div>
+          </div>
+          <div>
+            <div className="text-slate-400 font-medium mb-1">Criterio de aceptación:</div>
+            <div className="text-slate-300">El endpoint responde 200 con el contrato de §2, el commit coincide con git rev-parse HEAD de la rama desplegada, y ningún valor sensible aparece en la respuesta (ver §5).</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Response Contract */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§2</span>
+          Contrato de Respuesta
+        </h3>
+        <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+          <pre>{`{
+  "status": "ok",
+  "service": "fext-eos",
+  "version": "1.4.1",
+  "commit": "6257d8d8b655729f4bf0c2631030aa987198d828",
+  "environment": "production",
+  "buildTime": "2026-09-27T10:30:00.000Z",
+  "timestamp": "2026-09-27T10:45:12.341Z",
+  "database": {
+    "connected": true,
+    "schemaReady": true,
+    "schemaVersion": "20260927001",
+    "provider": "supabase"
+  }
+}`}</pre>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-700/50">
+                <th className="text-left py-2 px-2 text-slate-400">Campo</th>
+                <th className="text-left py-2 px-2 text-slate-400">Fuente</th>
+                <th className="text-left py-2 px-2 text-slate-400">Obligatorio</th>
+                <th className="text-left py-2 px-2 text-slate-400">Notas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { field: 'status', source: 'derivado', required: 'sí', notes: '"ok" si todo pasa; "degraded" si BD caída. Nunca 200 con status:"error"' },
+                { field: 'service', source: 'constante', required: 'sí', notes: '"fext-eos"' },
+                { field: 'version', source: 'APP_VERSION o package.json', required: 'sí', notes: 'sin prefijo v' },
+                { field: 'commit', source: 'GIT_COMMIT_SHA o VERCEL_GIT_COMMIT_SHA', required: 'sí', notes: 'trazabilidad GitLab↔Vercel — corazón de esta spec' },
+                { field: 'environment', source: 'DEPLOYMENT_ENVIRONMENT o VERCEL_ENV', required: 'sí', notes: 'production/preview/development' },
+                { field: 'buildTime', source: 'BUILD_TIME o VERCEL_DEPLOYMENT_ID', required: 'no', notes: 'ISO 8601' },
+                { field: 'timestamp', source: 'Date.now() en runtime', required: 'sí', notes: 'hora de la petición, no del build' },
+                { field: 'database.connected', source: 'probe barato (§3)', required: 'sí', notes: '' },
+                { field: 'database.schemaReady', source: 'probe de objetos core', required: 'sí', notes: 'false si migración pendiente' },
+                { field: 'database.schemaVersion', source: 'tabla versionado o MAX(version)', required: 'sí', notes: '"0" si aún no existe mecanismo' },
+                { field: 'database.provider', source: 'DATABASE_PROVIDER (env)', required: 'no', notes: 'resuelve ambigüedad Neon↔Supabase por declaración' },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-slate-700/20">
+                  <td className="py-2 px-2 text-cyan-300 font-mono">{row.field}</td>
+                  <td className="py-2 px-2 text-slate-400">{row.source}</td>
+                  <td className="py-2 px-2 text-slate-300">{row.required}</td>
+                  <td className="py-2 px-2 text-slate-500 text-[10px]">{row.notes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-3 bg-slate-700/30 rounded p-3 text-xs text-slate-400">
+          <strong className="text-slate-300">Errores:</strong> BD caída → HTTP 200 con status:"degraded", database.connected:false. Endpoint roto → HTTP 500 mínimo, sin stack trace.
+        </div>
+      </div>
+
+      {/* Section 3: DB Probes */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§3</span>
+          Probes de Base de Datos — Baratos y Seguros
+        </h3>
+        <div className="space-y-3 text-xs">
+          <div>
+            <div className="text-cyan-300 font-mono mb-1">connected:</div>
+            <div className="text-slate-300">SELECT 1 (o SELECT 1 FROM spatial_ref_sys LIMIT 1 si quieres confirmar PostGIS en el mismo viaje — una sola query, coste despreciable).</div>
+          </div>
+          <div>
+            <div className="text-cyan-300 font-mono mb-1">schemaReady:</div>
+            <div className="text-slate-300">Verificar existencia de 1–2 objetos core conocidos (ej. to_regclass('public.evidence_sources') o la tabla que M02 use como raíz). <span className="text-amber-300">No inventarías nombres: antes de implementar, listar el objeto core real desde el repo.</span> Si el repo no está disponible, dejar schemaReady implementado contra una lista configurable por env HEALTH_SCHEMA_OBJECTS (comma-separated) — ausencia de env → null, no false (no fingir).</div>
+          </div>
+          <div>
+            <div className="text-cyan-300 font-mono mb-1">schemaVersion:</div>
+            <div className="text-slate-300">Si existe ya un mecanismo de versionado en migrations/, leerlo. Si no existe <span className="text-blue-400 font-mono">[PROPUESTA]</span>: crearlo como migración separada y posterior (migration/health-schema-versioning), nunca en esta rama.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Implementation */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§4</span>
+          Implementación (Next.js App Router)
+        </h3>
+        <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+          <pre>{`app/api/health/route.ts
+
+export const dynamic = 'force-dynamic' — sin caché.
+Timeout propio en el probe SQL (ej. Promise.race con 2.5 s) para no colgar el edge.
+Responder en < 500 ms objetivo; sin autenticación (es público por diseño, igual que /).
+Headers: Cache-Control: no-store.`}</pre>
+        </div>
+      </div>
+
+      {/* Section 5: Never Expose */}
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-red-400 font-mono">§5</span>
+          Lo que NUNCA debe exponer
+        </h3>
+        <div className="space-y-2 text-xs">
+          <div className="text-slate-300 font-medium mb-2">Lista de bloqueo (revisar en code review y en test):</div>
+          <ul className="space-y-1 text-slate-400 ml-4">
+            <li className="flex items-start gap-2"><i className="fa-solid fa-xmark text-red-400 mt-0.5"></i>connection strings, passwords, tokens, service-role/anon keys</li>
+            <li className="flex items-start gap-2"><i className="fa-solid fa-xmark text-red-400 mt-0.5"></i>nombres de tablas sensibles más allá de los objetos core acordados</li>
+            <li className="flex items-start gap-2"><i className="fa-solid fa-xmark text-red-400 mt-0.5"></i>stack traces, paths absolutos del servidor, versiones internas de paquetes</li>
+            <li className="flex items-start gap-2"><i className="fa-solid fa-xmark text-red-400 mt-0.5"></i>NEXT_PUBLIC_* como fuente de nada secreto (y verificar que ningún valor del contrato venga de ahí salvo service)</li>
+          </ul>
+          <div className="mt-3 bg-slate-800/50 rounded p-3">
+            <div className="text-slate-300 font-medium mb-1">Test obligatorio:</div>
+            <div className="text-slate-400 font-mono text-[10px]">Snapshot de la respuesta contra una deny-list regex (/postgres(ql)?:\/\//i, service_role, eyJ (prefijo JWT), etc.) — el test falla si cualquier valor coincide.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 6: Environment Variables */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§6</span>
+          Variables de Entorno
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-700/50">
+                <th className="text-left py-2 px-2 text-slate-400">Variable</th>
+                <th className="text-left py-2 px-2 text-slate-400">Clase</th>
+                <th className="text-left py-2 px-2 text-slate-400">Requerida</th>
+                <th className="text-left py-2 px-2 text-slate-400">Ejemplo seguro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { var: 'GIT_COMMIT_SHA', class: 'SERVER-ONLY', required: 'sí (fallback a VERCEL_GIT_COMMIT_SHA)', example: '6257d8d…' },
+                { var: 'APP_VERSION', class: 'PUBLIC', required: 'sí (fallback a package.json)', example: '1.4.1' },
+                { var: 'DEPLOYMENT_ENVIRONMENT', class: 'SERVER-ONLY', required: 'sí (fallback a VERCEL_ENV)', example: 'production' },
+                { var: 'BUILD_TIME', class: 'PUBLIC', required: 'no', example: 'ISO string' },
+                { var: 'DATABASE_PROVIDER', class: 'PUBLIC', required: 'no', example: 'supabase / neon' },
+                { var: 'HEALTH_SCHEMA_OBJECTS', class: 'SERVER-ONLY', required: 'no', example: 'evidence_sources,territory_units' },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-slate-700/20">
+                  <td className="py-2 px-2 text-cyan-300 font-mono">{row.var}</td>
+                  <td className="py-2 px-2 text-slate-400">{row.class}</td>
+                  <td className="py-2 px-2 text-slate-300">{row.required}</td>
+                  <td className="py-2 px-2 text-slate-500 font-mono text-[10px]">{row.example}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 text-xs text-amber-300">
+          <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+          Actualizar .env.example con nombres y ejemplos ficticios. Nunca valores reales.
+        </div>
+      </div>
+
+      {/* Section 7: CI and Smoke Test */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§7</span>
+          CI y Smoke Test
+        </h3>
+        <div className="space-y-3 text-xs">
+          <div>
+            <div className="text-slate-300 font-medium mb-1">Unit:</div>
+            <div className="text-slate-400">Serialización del contrato; degraded cuando el probe rechaza; deny-list (§5).</div>
+          </div>
+          <div>
+            <div className="text-slate-300 font-medium mb-1">Integration (mockeando DB):</div>
+            <div className="text-slate-400">connected:true/false, schemaReady según objetos presentes.</div>
+          </div>
+          <div>
+            <div className="text-slate-300 font-medium mb-1">Smoke post-deploy (nueva etapa CI, no bloqueante al principio):</div>
+            <div className="bg-slate-900 rounded p-2 font-mono text-[10px] text-slate-300 mt-1">
+              curl -fsS https://firecycle-platform.vercel.app/api/health | jq -e '.status=="ok" and .commit=="'"$CI_COMMIT_SHA"'"'
+            </div>
+            <div className="text-slate-400 mt-2">El jq -e compara el commit de producción con el de GitLab: esto cierra la Fase 2 del brief de forma operativa.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 8: Rollback */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-purple-400 font-mono">§8</span>
+          Rollback
+        </h3>
+        <div className="text-xs text-slate-300">
+          Reversible por definición: borrar app/api/health/route.ts + revertir env vars. Sin migraciones, sin datos. No requiere plan adicional.
+        </div>
+      </div>
+
+      {/* Section 9: Definition of Done */}
+      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-emerald-400 font-mono">§9</span>
+          Definition of Done
+        </h3>
+        <div className="space-y-2 text-xs">
+          {[
+            'código + typecheck + lint + tests (unit + deny-list + integration)',
+            'build limpio',
+            '.env.example actualizado',
+            'security review (deny-list revisada por segunda persona o por auditoría cruzada)',
+            'deploy a preview → smoke manual',
+            'merge a main → verificar en producción: commit == HEAD de main',
+            'documentación: README + Report 002 actualizando la Control Matrix',
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-2 text-slate-300">
+              <i className="fa-regular fa-square text-slate-600"></i>
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section 10: Pending Verification */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-amber-400 font-mono">§10</span>
+          Datos que Requieren Verificación Antes de Codificar
+        </h3>
+        <div className="space-y-3 text-xs">
+          <div className="bg-slate-800/50 rounded p-3">
+            <div className="text-amber-300 font-medium mb-1">1. Nombre del objeto core para schemaReady</div>
+            <div className="text-slate-400">Inspeccionar migrations/ real; no asumir.</div>
+          </div>
+          <div className="bg-slate-800/50 rounded p-3">
+            <div className="text-amber-300 font-medium mb-1">2. Proveedor real de BD</div>
+            <div className="text-slate-400">La env DATABASE_PROVIDER lo declarará, pero conviene que el valor inicial se decida con evidencia (dashboard Vercel), no con la UI.</div>
+          </div>
+          <div className="bg-slate-800/50 rounded p-3">
+            <div className="text-amber-300 font-medium mb-1">3. Mecanismo de versionado de esquema existente</div>
+            <div className="text-slate-400">Si no existe, queda fuera de esta rama (§3).</div>
+          </div>
+        </div>
+        <div className="mt-4 text-xs text-amber-300 font-medium">
+          <i className="fa-solid fa-clock mr-1"></i>
+          PENDIENTE: Cuando tengas el repo disponible en el entorno (o me confirmes el nombre del objeto core de M02 y el proveedor real), genero el route.ts completo con los tests listos para la rama feat/health-canonical-metadata.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ControlMatrix() {
   return (
     <div className="space-y-6">
@@ -826,6 +1141,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {activeTab === 'executive' && <ExecutiveStatus />}
         {activeTab === 'verified' && <VerifiedFacts />}
+        {activeTab === 'health-spec' && <HealthSpec />}
         {activeTab === 'modules' && <ModuleRegistry />}
         {activeTab === 'findings' && <FindingsPanel />}
         {activeTab === 'divergences' && <DivergencesPanel />}
