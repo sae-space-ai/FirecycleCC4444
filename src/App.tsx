@@ -326,7 +326,7 @@ function ExecutiveStatus() {
           ))}
         </div>
         <div className="mt-3 text-xs text-red-300 font-medium">
-          RESULTADO: 0 PASS · 4 FAIL · 1 PARTIAL · 11 HOLD — v1.4.1 NO CERTIFICABLE
+          RESULTADO: 0 PASS · 5 FAIL · 1 PARTIAL · 10 HOLD — v1.4.1 NO CERTIFICABLE
         </div>
       </div>
     </div>
