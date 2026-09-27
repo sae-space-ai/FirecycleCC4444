@@ -94,6 +94,7 @@ const findings: Finding[] = [
   { id: 'DATA-001', title: 'Datos territoriales declarados sin verificación', severity: 'MEDIUM', category: 'Data', description: 'La UI muestra RTU-3765, Pinofranqueado-Las Hurdes, 3765.34 ha, €4.525M. La propia UI los marca "DECLARED · PENDING VERIFICATION".', status: 'VERIFIED', evidence: 'HTML: "DECLARED · PENDING VERIFICATION" + truth boundary note', recommendation: 'Registrar evidencia primaria en Evidence Engine para cada dato declarado.' },
   { id: 'ARCH-002', title: 'PostGIS no mencionado en producción', severity: 'MEDIUM', category: 'Database', description: 'La UI muestra Neon PostgreSQL pero NO menciona PostGIS. El brief afirma PostGIS activo. Si la BD es Neon, PostGIS puede no estar disponible.', status: 'PARTIAL', evidence: 'C11-P1 muestra "Neon PostgreSQL" sin mención de PostGIS', recommendation: 'Verificar si Neon tiene PostGIS habilitado. Si no, evaluar migración a Supabase o habilitar PostGIS en Neon.' },
   { id: 'EVID-001', title: 'Evidence Engine presente pero cadena no verificada', severity: 'HIGH', category: 'Evidence', description: 'M02 Evidence Engine está marcado OPERATIONAL en frontend. La cadena SOURCE→ACQUISITION→PROCESSING→DERIVED→REVIEW→VALIDATION→DECISION no puede verificarse sin acceso al código.', status: 'PARTIAL', evidence: 'HTML: "evidence runtime and API are present; human review remains required"', recommendation: 'Inspeccionar código de M02 para verificar implementación de la cadena completa y separación AI OUTPUT ≠ VERIFIED EVIDENCE.' },
+  { id: 'DEPLOY-001', title: 'Múltiples deployments de Vercel activos', severity: 'MEDIUM', category: 'Deployment', description: 'Existen al menos 2 deployments activos: firecycle-platform.vercel.app (proyecto principal con 34 módulos) y firecycle-cc-4444.vercel.app (dashboard de auditoría). Ambos devuelven 404 en /api/health.', status: 'VERIFIED', evidence: 'GET https://firecycle-cc-4444.vercel.app/ → HTTP 200; GET /api/health → 404', recommendation: 'Documentar la relación entre deployments. Determinar cuál es canónico. Considerar consolidar o documentar propósito de cada uno.' },
 ]
 
 // ============================================================
@@ -110,8 +111,10 @@ interface ControlItem {
 }
 
 const controlMatrix: ControlItem[] = [
-  { control: 'Producción activa', before: 'DESCONOCIDO', action: 'GET /', after: 'HTTP 200 VERIFIED', evidence: 'firecycle-platform.vercel.app responde 200', status: 'PASS' },
-  { control: '/api/health endpoint', before: 'AFIRMADO HTTP 200', action: 'GET /api/health', after: 'HTTP 404 NOT_FOUND', evidence: 'Vercel 404 page', status: 'FAIL' },
+  { control: 'Producción activa (platform)', before: 'DESCONOCIDO', action: 'GET /', after: 'HTTP 200 VERIFIED', evidence: 'firecycle-platform.vercel.app responde 200', status: 'PASS' },
+  { control: 'Producción activa (audit)', before: 'DESCONOCIDO', action: 'GET /', after: 'HTTP 200 VERIFIED', evidence: 'firecycle-cc-4444.vercel.app responde 200', status: 'PASS' },
+  { control: '/api/health endpoint (platform)', before: 'AFIRMADO HTTP 200', action: 'GET /api/health', after: 'HTTP 404 NOT_FOUND', evidence: 'Vercel 404 page', status: 'FAIL' },
+  { control: '/api/health endpoint (audit)', before: 'NO IMPLEMENTADO', action: 'GET /api/health', after: 'HTTP 404 NOT_FOUND', evidence: 'Vercel 404 page (esperado: dashboard estático)', status: 'FAIL' },
   { control: 'Identidad FEXT-EOS', before: 'DESCONOCIDO', action: 'Inspección HTML', after: 'VERIFIED: FEXT-EOS EU OPERATIONAL TOOL', evidence: 'Title + badge en HTML', status: 'PASS' },
   { control: 'Base de datos canónica', before: 'AFIRMADO Supabase', action: 'Inspección C11', after: 'Neon PostgreSQL (DIVERGENCIA)', evidence: 'C11-P1 "Neon PostgreSQL", "Base neondb"', status: 'FAIL' },
   { control: 'PostGIS activo', before: 'AFIRMADO', action: 'Buscar mención en UI', after: 'NO MENCIONADO', evidence: 'C11 no menciona PostGIS', status: 'FAIL' },
@@ -194,11 +197,11 @@ function Header() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="font-medium">PROD: HTTP 200 VERIFIED</span>
+              <span className="font-medium">2 DEPLOYMENTS VERIFIED</span>
             </div>
             <div className="hidden md:flex items-center gap-2 text-xs text-red-400">
               <i className="fa-solid fa-triangle-exclamation"></i>
-              <span className="font-medium">/api/health: 404</span>
+              <span className="font-medium">/api/health: 404 (both)</span>
             </div>
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
               <i className="fa-solid fa-calendar"></i>
@@ -262,8 +265,8 @@ function ExecutiveStatus() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Prod HTTP', value: '200', sub: 'VERIFIED', color: 'emerald' },
-          { label: '/api/health', value: '404', sub: 'NOT FOUND', color: 'red' },
+          { label: 'Deployments', value: '2', sub: 'VERIFIED', color: 'emerald' },
+          { label: '/api/health', value: '404', sub: 'BOTH FAIL', color: 'red' },
           { label: 'Runtime Modules', value: '11', sub: 'OPERATIONAL', color: 'cyan' },
           { label: 'Spec Modules', value: '23', sub: 'SPECIFICATION', color: 'slate' },
           { label: 'Total Catalogue', value: '34', sub: 'MODULES', color: 'blue' },
@@ -326,7 +329,7 @@ function ExecutiveStatus() {
           ))}
         </div>
         <div className="mt-3 text-xs text-red-300 font-medium">
-          RESULTADO: 0 PASS · 5 FAIL · 1 PARTIAL · 10 HOLD — v1.4.1 NO CERTIFICABLE
+          RESULTADO: 0 PASS · 5 FAIL · 1 PARTIAL · 10 HOLD — v1.4.1 NO CERTIFICABLE (16 criterios evaluados)
         </div>
       </div>
     </div>
@@ -366,6 +369,8 @@ function VerifiedFacts() {
           { fact: 'Programas declarados: FEXT-RESILIENT, EUROHPC 2026', source: 'HTML fpc-card', time: '27/09/2026', level: 'HECHO_DOCUMENTADO' as EvidenceLevel },
           { fact: 'Catálogo versión: "Ecosystem catalogue v3.0.0"', source: 'HTML .eu-footer', time: '27/09/2026', level: 'HECHO_DOCUMENTADO' as EvidenceLevel },
           { fact: 'Vercel deployment region: iad1 (us-east-1)', source: '404 page footer', time: '27/09/2026', level: 'HECHO_DOCUMENTADO' as EvidenceLevel },
+          { fact: 'Segundo deployment activo: firecycle-cc-4444.vercel.app (este dashboard de auditoría)', source: 'GET https://firecycle-cc-4444.vercel.app/', time: '27/09/2026', level: 'HECHO_DOCUMENTADO' as EvidenceLevel },
+          { fact: 'firecycle-cc-4444 también devuelve 404 en /api/health', source: 'GET https://firecycle-cc-4444.vercel.app/api/health', time: '27/09/2026', level: 'HECHO_DOCUMENTADO' as EvidenceLevel },
         ].map((item, i) => (
           <div key={i} className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
             <div className="flex items-start justify-between gap-3">
@@ -548,6 +553,16 @@ function FindingsPanel() {
             )
           })}
         </div>
+        <div className="mt-4 pt-4 border-t border-slate-700/30">
+          <div className="text-xs text-slate-400">
+            <strong>Total findings:</strong> {findings.length} · 
+            <span className="text-red-400 ml-1">2 CRITICAL</span> · 
+            <span className="text-orange-400 ml-1">4 HIGH</span> · 
+            <span className="text-amber-400 ml-1">3 MEDIUM</span> · 
+            <span className="text-slate-500 ml-1">0 LOW</span> · 
+            <span className="text-slate-500 ml-1">0 INFORMATIONAL</span>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -647,6 +662,29 @@ function DivergencesPanel() {
               <div className="text-sm text-amber-300">Sin mención de PostGIS</div>
               <div className="text-xs text-slate-500 mt-1">C11 solo menciona "Neon PostgreSQL"</div>
             </div>
+          </div>
+        </div>
+
+        {/* Divergence 5: Multiple Deployments */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">MEDIUM</span>
+            <span className="text-sm font-semibold text-white">Divergencia 5: Múltiples Deployments</span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Deployment 1</div>
+              <div className="text-sm text-blue-300">firecycle-platform.vercel.app</div>
+              <div className="text-xs text-slate-500 mt-1">Proyecto principal: 34 módulos, 12 capas, 191 subpáginas</div>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Deployment 2</div>
+              <div className="text-sm text-blue-300">firecycle-cc-4444.vercel.app</div>
+              <div className="text-xs text-slate-500 mt-1">Dashboard de auditoría (este reporte)</div>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-blue-300">
+            <strong>Impacto:</strong> Ambos deployments devuelven 404 en /api/health. Requiere documentación de cuál es canónico y propósito de cada uno.
           </div>
         </div>
       </div>
